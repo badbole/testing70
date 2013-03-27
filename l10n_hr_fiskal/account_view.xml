@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+	<data>
+
+		<!-- account Journal -->
+
+		<record id="view_account_journal_fiskal" model="ir.ui.view" >
+			<field name="name">view.account.journal.fiskal</field>
+			<field name="model">account.journal</field>
+			<field name="inherit_id" ref="l10n_hr_account.view_account_journal_invoice_pnbr"/>
+			<field name="arch" type="xml">
+				<field name="P4_pnbr" position="after">
+            		<newline/>
+                	<separator string="Fiskalizacija" colspan="8"/>
+					<field name="fiskal_active" colspan="4" groups="account.group_account_manager"/>
+            		<newline/>
+					<field name="fiskal_uredjaj_ids" colspan="8" groups="account.group_account_manager"/>
+				</field>
+			</field>
+		</record>
+
+		<!-- account_tax_code -->
+		<record id="account.view_tax_code_form_fiskal" model="ir.ui.view">
+			<field name="name">account.tax.code.form.fiskal</field>
+			<field name="model">account.tax.code</field>
+			<field name="type">form</field>
+			<field name="inherit_id" ref="account.view_tax_code_form"/>
+			<field name="arch" type="xml">
+				<field name="company_id" position="after">
+                 	<separator string="Fiskalizacija" colspan="6"/>
+					<field name="fiskal_type"/>
+					<field name="fiskal_percent"/>
+				</field>
+			</field>
+		</record>
+
+	</data>
+</openerp>
