@@ -67,15 +67,15 @@
 							<field name="posta"/>
 							<field name="naselje"/>
 							<field name="opcina"/>
-						</page>
-						<page string="Prijava">
 							<field name="sljed_racuna"/>
 							<newline/>
-							<field name="uredjaj_ids" colspan="4"/>
 							<field name="radno_vrijeme"/>
 							<field name="spec"/>
-					
+							<field name="uredjaj_ids" colspan="4"/>
+						</page>
+						<page string="Komunikacija">
 
+							<field name="fiskal_log_ids" nolabel="1" colspan="4"/>
 						</page>
 					</notebook>
 				</form>
@@ -100,7 +100,6 @@
 			</field>
 		</record>
 
-
 		<!-- log view tree-->
 		<record id="fiskal_log_tree_view" model="ir.ui.view" >
 			<field name="name">fiskal_log_tree_view</field>
@@ -110,11 +109,12 @@
 				<tree string="tree_string">
 					<field name="name" select="1" />
 					<field name="type" />
-					<field name="timestamp" />
+					<field name="time_stamp" />
 					<field name="time_obr" />
 				</tree>
 			</field>
 		</record>
+		
 		<!-- log view FORM-->
 		<record id="fiskal_log_form_view" model="ir.ui.view" >
 			<field name="name">fiskal_log_form_view</field>
@@ -124,7 +124,7 @@
 				<form string="Evidencija prometa">
 					<field name="name" string="UUID poruke"/>
 					<field name="type" />
-					<field name="timestamp"/>
+					<field name="time_stamp"/>
 					<field name="time_obr" />
 					<field name="user_id"/>
 					<newline/>
@@ -183,7 +183,7 @@
 			</field>
 		</record>
 
-		<!-- account.tax.code fiskla type & percent -->
+		<!-- account.tax.code fiskal type & percent -->
 		<record id="account.view_tax_code_form_fiskal" model="ir.ui.view">
 			<field name="name">account.tax.code.form.fiskal</field>
 			<field name="model">account.tax.code</field>

@@ -27,7 +27,7 @@
 
 import certificate
 import fiskalizacija
-import company
+#import company  ##ovo prebaceno u fiskalizacija.py
 import account_invoice
 import account
 

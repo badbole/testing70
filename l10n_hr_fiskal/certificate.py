@@ -10,8 +10,9 @@ class certificate(osv.Model):
         return (('fina_demo','Fina Demo Certifiacte'),
                 ('fina_prod','Fina Production Certificate'),
                 ('personal','Personal Certificate'),
-                ('other','Other types ->TODO')
+                ('other','Other types')
                )
+    
     _columns = {
         'company_id':fields.many2one('res.company','Tvrtka',help='Cerificate is used for this company only.'),
         'group_id': fields.many2one('res.groups', 'User group', select=True, help='Users who use the certificate.'),

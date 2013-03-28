@@ -14,9 +14,8 @@ from datetime import datetime
 from pytz import timezone
 
 
-#Globals, TODO improve
+#Globals
 keyFile = certFile = "" 
-
 
 #logging.basicConfig(level=logging.INFO, filename='/var/log/fisk/fiskalizacija.log')
 #logging.getLogger('suds.client').setLevel(logging.DEBUG)
@@ -51,8 +50,7 @@ def received(self, context):
     libxml2.cleanupParser()
     return context
 
-
-# Override failed metode zbog XML cvora koji fali u odgovoru porezne 
+# Override failed metode zbog XML cvora koji fali u odgovoru porezne
 def failed(self, binding, error):
     return _failed(self, binding, error)
 
@@ -81,8 +79,6 @@ def zagreb_now():
 
 def fiskal_num2str(num):
     return "{:-.2f}".format(num)
-
-
 
 class DodajPotpis(MessagePlugin):
     
@@ -150,29 +146,30 @@ def SetFiskalFilePaths(key, cert):
     keyFile, certFile = key, cert
 
 class Fiskalizacija():
-    def init(self, msgtype, wsdl, key, cert, oe_id=None):
-        #file paths for wsdl, key, cert
+    
+    def __init__(self, msgtype, wsdl, key, cert, cr, uid, oe_id=None):
+        self.set_start_time() 
         self.wsdl = wsdl  
         self.key = key 
         self.cert = cert
         self.msgtype =msgtype
         self.oe_id = oe_id or 0 #openerp id racuna ili pprostora ili 0 za echo i ostalo
-
+        self.cr = cr            #openerp cursor radi log-a 
+        self.uid = uid          #openerp cursor radi log-a 
         SetFiskalFilePaths(key, cert)
-
         self.client2 = Client(wsdl, cache=None, prettyxml=True, timeout=15, faults=False, plugins=[DodajPotpis()] ) 
         self.client2.add_prefix('tns', 'http://www.apis-it.hr/fin/2012/types/f73')
-        self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
-
         if msgtype in ('echo'):
             pass
         elif msgtype in ('prostor_prijava', 'prostor_odjava', 'PoslovniProstor'):
+            self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
             self.prostor = self.client2.factory.create('tns:PoslovniProstor')
         elif msgtype in ('racun', 'racun_ponovo', 'Racun'):
+            self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
             self.racun = self.client2.factory.create('tns:Racun') 
 
     def time_formated(self): 
-        tstamp = zagreb_now() #datetime.datetime.now() this was server def. tz time
+        tstamp = zagreb_now() 
         v_date='%02d.%02d.%02d' % (tstamp.day, tstamp.month, tstamp.year)
         v_datum_vrijeme='%02d.%02d.%02dT%02d:%02d:%02d' % (tstamp.day, tstamp.month, tstamp.year, tstamp.hour, tstamp.minute, tstamp.second)
         v_datum_racun='%02d.%02d.%02d %02d:%02d:%02d' % (tstamp.day, tstamp.month, tstamp.year, tstamp.hour, tstamp.minute, tstamp.second)
@@ -181,31 +178,66 @@ class Fiskalizacija():
                  'datum_racun':v_datum_racun,       # format za ispis na računu
                  'time_stamp':tstamp}               # timestamp, za zapis i izračun vremena obrade
         return vrijeme
-        
-        
+
     def set_start_time(self):
         self.start_time = self.time_formated()
 
     def set_stop_time(self):
         self.stop_time = self.time_formated()
+        
+    def log_fiskal(self):
+        fiskal_prostor_id = invoice_id = None
+        if self.msgtype in ('echo'):
+            self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
+            self.zaglavlje.IdPoruke = str(uuid.uuid1())
+        elif self.msgtype in ('prostor_prijava', 'prostor_odjava'):
+            fiskal_prostor_id = self.oe_id
+        elif self.msgtype in ('racun', 'racun_ponovo', 'Racun'):
+            invoice_id = self.oe_id
+
+        self.set_stop_time()
+        t_obrada = self.stop_time['time_stamp'] - self.start_time['time_stamp']
+        time_obr='%s.%s s'%(t_obrada.seconds, t_obrada.microseconds)
+        
+        self.cr.execute("""
+            INSERT INTO fiskal_log(
+                         user_id, create_uid, create_date
+                        ,name, type, time_stamp 
+                        ,sadrzaj, odgovor, greska
+                        ,fiskal_prostor_id, invoice_id, time_obr
+                         )
+                VALUES ( %s, %s, %s,  %s, %s, %s,  %s, %s, %s,  %s, %s, %s );
+            """, ( self.uid, self.uid, datetime.now(),
+                   self.zaglavlje.IdPoruke, self.msgtype, datetime.now(),
+                   str(self.poruka_zahtjev), str(self.poruka_odgovor), self.greska,
+                   fiskal_prostor_id, invoice_id, time_obr
+                  ) 
+        )
 
     def echo(self):
         try:
-            pingtest=self.client2.service.echo('TEST PORUKA')
-            poruka_zahtjev =  self.client2.last_sent().str()
-            return pingtest, poruka_zahtjev
+            odgovor=self.client2.service.echo('TEST PORUKA')
+            self.poruka_zahtjev =  self.client2.last_sent()
+            self.poruka_odgovor=odgovor
+            self.greska=None
         except:
-            return 'No ECHO reply','TEST PORUKA'
-
+            self.greska="No reply recived or some unexpected error occured!"#BOLE: potrebno porvjeriti jel radi.. treba generirati gresku!
+        finally:
+            self.log_fiskal()
+        return True
+    
     def posalji_prostor(self):
+        self.greska =''
         try:
-            odgovor=self.client2.service.poslovniProstor(self.zaglavlje, self.pp)
-            poruka_zahtjev =  self.client2.last_sent().str()
-            poruka_odgovor = str(odgovor)
-            return poruka_odgovor, poruka_zahtjev
+            odgovor=self.client2.service.poslovniProstor(self.zaglavlje, self.prostor)
+            self.poruka_zahtjev =  self.client2.last_sent()
+            self.poruka_odgovor = odgovor
         except:
-            return 'Error - no reply!', poruka
-
+            return 'Error - no reply!', self.poruka
+        finally:
+            self.log_fiskal()
+        return self.poruka_odgovor
+            
     def izracunaj_zastitni_kod(self):    
         self.racun.ZastKod = self.get_zastitni_kod(self.racun.Oib,
                                                   self.racun.DatVrijeme,
@@ -222,17 +254,32 @@ class Fiskalizacija():
         return hashlib.md5(signature).hexdigest()
 
     def posalji_racun(self):
+        self.greska =''
+        res = False
         try:
-            return self.client2.service.racuni(self.zaglavlje, self.racun)
+            odgovor=self.client2.service.racuni(self.zaglavlje, self.racun)
+            self.poruka_zahtjev =  self.client2.last_sent()
+            self.poruka_odgovor = odgovor
+            if odgovor[0] == 200:
+                res = True
+            elif odgovor[0] == 500:
+                self.greska = '=>'.join(( odgovor[1]['Greske'][0][0]['SifraGreske'],
+                                          odgovor[1]['Greske'][0][0]['PorukaGreske'].replace('http://www.apis-it.hr/fin/2012/types/','')
+                                       ))
+            else:
+                self.greska ='Nepoznata vrsta odgovora!'  #odgovor[0] not in (200,500)
         except:
-            pass#a=self.client2.service.racuni(self.zaglavlje, self.racun)
-            return 'greška u slanju podataka' 
+            #return 'Error - no reply!', self.poruka
+            self.greska ='Ostale greske - Nema Odgovor! '
+        finally:
+            self.log_fiskal()
+        return res
+        
 
     def generiraj_poruku(self):
         self.client2.options.nosend = True
         poruka = str(self.client2.service.racuni(self.zaglavlje, self.racun).envelope)
         self.client2.options.nosend = False
         return poruka
-
         
     

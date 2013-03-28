@@ -48,7 +48,7 @@ Preduvjeti:
         python-dev, python-ms2crypto, libxmlsec1-dev
         build/install pyxmlsec-0.3.2! 
 """,
-    "version" : "1.05",
+    "version" : "1.07",
     "author" : "DAJ MI 5",
     "category" : "Localisation/Croatia",
     "website": "http://www.dajmi5.com",
@@ -65,7 +65,7 @@ Preduvjeti:
     'update_xml': [
                    'certificate_view.xml',
                    'fiskalizacija_view.xml',
-                   'company_view.xml',
+                   #'company_view.xml',
                    'security/ir.model.access.csv',
                    'account_view.xml',
                    'account_invoice_view.xml',

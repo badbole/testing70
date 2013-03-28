@@ -64,12 +64,16 @@ class account_invoice(osv.Model):
             'fiskal_user_id':False,
             'zki':False,
             'jir': False,
-            #'uredjaj_id': False,
-            #'prostor_id': False,
-            #'nac_plac': False,
+            'fiskal_log_ids': False,
+            
         })
         return super(account_invoice, self).copy(cr, uid, id, default, context)
        
+    def prepare_fiskal_racun(self, cr, uid, id, context=None):
+        """ Validate invoice, write min. data 
+        """
+        return True
+
     def button_fiscalize(self, cr, uid, ids, context=None):
         if context is None:
             context = {}
@@ -152,10 +156,7 @@ class account_invoice(osv.Model):
         wsdl, cert, key = prostor_obj.get_fiskal_data(cr, uid, company_id=invoice.company_id.id)
         if not wsdl:
             return False
-        a = Fiskalizacija()
-        a.set_start_time()
-
-        a.init('Racun', wsdl, cert, key)
+        a = Fiskalizacija('Racun', wsdl, cert, key, cr, uid, oe_id = id)
         
         start_time=a.time_formated()
         a.t = start_time['datum'] 
@@ -168,21 +169,22 @@ class account_invoice(osv.Model):
             self.write(cr, uid, [id], {'vrijeme_izdavanja': start_time['time_stamp'].strftime(tools.DEFAULT_SERVER_DATETIME_FORMAT) })
         
         if not invoice.company_id.fina_certifikat_id:
+            raise osv.except_osv(_('No certificate!'), _('No valid certificate found for fiscalization usage, Please provide one.'))
             pass #TODO Error
         if invoice.company_id.fina_certifikat_id.cert_type == 'fina_prod':
-            a.racun.Oib = invoice.company_id.partner_id.vat[2:]  
+            a.racun.Oib = invoice.company_id.partner_id.vat[2:]  # pravi OIB company
         elif invoice.company_id.fina_certifikat_id.cert_type == 'fina_demo':
             a.racun.Oib = invoice.uredjaj_id.prostor_id.spec[2:]  #OIB IT firme , ionako samo oni mogu koristiti demo cert!
         else:
             pass #TODO Error
                    
          
-        a.racun.DatVrijeme = dat_vrijeme 
-        a.racun.OznSlijed = invoice.prostor_id.sljed_racuna 
+        a.racun.DatVrijeme = dat_vrijeme #invoice.vrijeme_izdavanja
+        a.racun.OznSlijed = invoice.prostor_id.sljed_racuna #'P' ## sljed_racuna
 
         #dijelovi broja racuna
         BrojOznRac, OznPosPr, OznNapUr = invoice.number.rsplit('/',2)
-        BrOznRac =''
+        BrOznRac = ''
         for b in ''.join([x for x in BrojOznRac[::-1]]): #reverse
             if b.isdigit() :BrOznRac += b                #
             else: break                                  #break on 1. non digit
@@ -209,76 +211,11 @@ class account_invoice(osv.Model):
             a.racun.NakDost = "true"
             a.racun.ZastKod = invoice.zki
         
-        odgovor_string=a.posalji_racun()
-        odgovor_array = odgovor_string[0]
-        # ... sad tu ima odgovor.Jir
-        if odgovor_array==500 : 
-            g = odgovor_string[1]
-            odgovor= g.Greske.Greska
-            zk=self.write(cr,uid,id,{'jir':'došlo je do greške!'})
-            pass
-        else :
-            b=odgovor_string[1]
-            jir=b.Jir
-            odgovor = "JIR - " + jir
-            zk=self.write(cr,uid,id,{'jir':jir})
-
-        """
-        poslao = "Račun :" + invoice.number +"\n"
-        poslao = poslao +"StartTime : "+ start_time['datum_vrijeme']+ "\n"
-        poslao = poslao + "OIB Organizacije : " +"\n"
-        poslao = poslao + "Datum na računu :" + start_time['datum_racun'] + "\n"
-        poslao = poslao + "Sljed racuna oznaka : " + a.racun.OznSlijed + "\n"
-        poslao = poslao + "U sustavu PDV : " + pdv + "\n" 
-        poslao = poslao + "Stopa poreza : hardcode 25.00 \n" 
-        poslao = poslao + "Osnovica : " + osnovica + "\n" 
-        poslao = poslao + "Iznos ukupno : " + iznos + "\n" 
-        poslao = poslao + "Iznos poreza : " + porez + "\n" 
-        poslao = poslao + "Način Plaćanja : " + invoice.nac_plac + "\n"
-        if not invoice.zki:
-            poslao="Slanje: 1.\n" + poslao + "\n"
-        else :
-            poslao="Ponovljeno slanje \n" + poslao + "\n"
-        """
-        stop_time=a.time_formated()
+        fiskaliziran = a.posalji_racun()
         
-        ##ovo sam dodao samo da vidim vrijeme odaziva...
-        t_obrada=stop_time['time_stamp']-start_time['time_stamp']
-        time_ob='%s.%s s'%(t_obrada.seconds, t_obrada.microseconds)
-        
-        values={
-                'name':uuid.uuid4(),
-                'type':'racun',
-                'sadrzaj':poslao,
-                'timestamp':stop_time['time_stamp'], 
-                'time_obr':time_ob,
-                'origin_id':invoice.id,
-                'odgovor': odgovor
-                }
-        return self.pool.get('l10n.hr.log').create(cr,uid,values,context=context)
-
-account_invoice()
-
-
-
-class account_move(osv.osv):
-    _inherit = 'account.move'
-
-    def post(self, cr, uid, ids, context=None):
-        if context is None:
-            context = {}
-        res = super(account_move,self).post(cr, uid, ids, context)
-        if res:
-            invoice = context.get('invoice', False)
-            if not invoice:
-                return res #TODO Check posting from accounting
-            if not invoice.type in ('out_invoice', 'out_refund'): 
-                return res #samo izlazne racune fiskaliziramo
-            fiskalni_sufiks = '/'.join( (invoice.uredjaj_id.prostor_id.oznaka_prostor, str(invoice.uredjaj_id.oznaka_uredjaj)))
-            for move in self.browse(cr, uid, ids):
-                new_name =  '/'.join( (move.name, fiskalni_sufiks) ) 
-                self.write(cr, uid, [move.id], {'name':new_name})
-                self.pool.get('account.invoice').fiskaliziraj(cr, uid, invoice.id, context)
-        return res
-    
-    
+        if fiskaliziran:
+            jir = a.poruka_odgovor[1].Jir
+            self.write(cr,uid,id,{'jir':jir})
+        else:
+            self.write(cr,uid,id,{'jir':'PONOVITI SLANJE!'})
+            

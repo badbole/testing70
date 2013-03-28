@@ -3,9 +3,8 @@
 	<data>
 
 		<!-- account Journal -->
-
-		<record id="view_account_journal_fiskal" model="ir.ui.view" >
-			<field name="name">view.account.journal.fiskal</field>
+		<record id="view_account_journal_fiskal_form" model="ir.ui.view" >
+			<field name="name">view.account.journal.fiskal.form</field>
 			<field name="model">account.journal</field>
 			<field name="inherit_id" ref="l10n_hr_account.view_account_journal_invoice_pnbr"/>
 			<field name="arch" type="xml">
@@ -18,6 +17,18 @@
 				</field>
 			</field>
 		</record>
+		
+		<record id="view_account_journal_fiskal_tree" model="ir.ui.view" >
+            <field name="name">view.account.journal.fiskal.tree</field>
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="account.view_account_journal_tree"/>
+            <field name="arch" type="xml">
+                <field name="code" position="after">
+                    <field name="fiskal_active"  groups="account.group_account_manager"/>
+                    
+                </field>
+            </field>
+        </record>
 
 		<!-- account_tax_code -->
 		<record id="account.view_tax_code_form_fiskal" model="ir.ui.view">

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
 	<data>
-		<record model="ir.ui.view" id="account_invoice_l10_n_hr_fiskal">
-			<field name="name">account.invoice.l10n.hr.fiskal</field>
+		<record id="account_invoice_form_fiskal" model="ir.ui.view" >
+			<field name="name">account.invoice.fiskal</field>
 			<field name="model">account.invoice</field>
 			<field name="inherit_id" ref="account.invoice_form"/>
 			<field name="arch" type="xml">
@@ -10,17 +10,22 @@
                     <button name="button_fiscalize" string="Fiskaliziraj" type="object" groups="base.group_user" />
 				</field>
 
-				<field name="type" position="before">
-				    <group colspan="4">
-					<field name="zki" string="ZKI" readonly="True"  />
-					<field name="jir" string="JIR" readonly="True" />
-					</group>
-				</field>
+            	<notebook position="inside">
+	                <page string="Fiskalizacija (CRO)">
+					    <group colspan="4">
+					    <field name="uredjaj_id"/> 
+					    <field name="prostor_id"/> 
+						<newline/>
+						<field name="jir" string="JIR" readonly="True" />
+						<field name="zki" string="ZKI" readonly="True"  />
+				        <field name="fiskal_user_id" />  
+						</group>
+						<field name="fiskal_log_ids" nolabel="1" readonly="True" colspan="4"/>
+	                </page>	
+                </notebook>
+				
 				<field name="journal_id" position="after">
-				    <field name="uredjaj_id"/> 
-				    <field name="prostor_id"/> 
 				    <field name="nac_plac"/>
-				    <field name="fiskal_user_id" />  #invisible="1"
 				</field>
 
 			</field>
