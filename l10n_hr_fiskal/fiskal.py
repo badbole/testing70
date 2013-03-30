@@ -54,6 +54,7 @@ def received(self, context):
 def failed(self, binding, error):
     return _failed(self, binding, error)
 
+
 def _failed(self, binding, error):
     status, reason = (error.httpcode, str(error))
     reply = error.fp.read()
@@ -147,26 +148,29 @@ def SetFiskalFilePaths(key, cert):
 
 class Fiskalizacija():
     
-    def __init__(self, msgtype, wsdl, key, cert, cr, uid, oe_id=None):
+    def __init__(self, msgtype, wsdl, key, cert, cr, uid, oe_obj=None):
         self.set_start_time() 
-        self.wsdl = wsdl  
-        self.key = key 
-        self.cert = cert
-        self.msgtype =msgtype
-        self.oe_id = oe_id or 0 #openerp id racuna ili pprostora ili 0 za echo i ostalo
-        self.cr = cr            #openerp cursor radi log-a 
-        self.uid = uid          #openerp cursor radi log-a 
+        self.wsdl=wsdl  
+        self.key=key 
+        self.cert=cert
+        self.msgtype=msgtype
+        self.oe_obj=oe_obj
+        self.oe_id=oe_obj and oe_obj.id or 0 #openerp id racuna ili pprostora ili 0 za echo i ostalo
+        self.cr=cr            #openerp cursor radi log-a 
+        self.uid=uid          #openerp cursor radi log-a 
         SetFiskalFilePaths(key, cert)
         self.client2 = Client(wsdl, cache=None, prettyxml=True, timeout=15, faults=False, plugins=[DodajPotpis()] ) 
         self.client2.add_prefix('tns', 'http://www.apis-it.hr/fin/2012/types/f73')
+        self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
         if msgtype in ('echo'):
             pass
         elif msgtype in ('prostor_prijava', 'prostor_odjava', 'PoslovniProstor'):
-            self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
+            #self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
             self.prostor = self.client2.factory.create('tns:PoslovniProstor')
         elif msgtype in ('racun', 'racun_ponovo', 'Racun'):
-            self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
+            #self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
             self.racun = self.client2.factory.create('tns:Racun') 
+        self.greska =''
 
     def time_formated(self): 
         tstamp = zagreb_now() 
@@ -188,13 +192,13 @@ class Fiskalizacija():
     def log_fiskal(self):
         fiskal_prostor_id = invoice_id = None
         if self.msgtype in ('echo'):
-            self.zaglavlje = self.client2.factory.create('tns:Zaglavlje')
-            self.zaglavlje.IdPoruke = str(uuid.uuid1())
-        elif self.msgtype in ('prostor_prijava', 'prostor_odjava'):
+            fiskal_prostor_id = self.oe_id
+        elif self.msgtype in ('prostor_prijava', 'prostor_odjava', 'PoslovniProstor'):
             fiskal_prostor_id = self.oe_id
         elif self.msgtype in ('racun', 'racun_ponovo', 'Racun'):
             invoice_id = self.oe_id
-
+        company_id = self.oe_obj and self.oe_obj.company_id and self.oe_obj.company_id.id or 1
+                     
         self.set_stop_time()
         t_obrada = self.stop_time['time_stamp'] - self.start_time['time_stamp']
         time_obr='%s.%s s'%(t_obrada.seconds, t_obrada.microseconds)
@@ -205,35 +209,43 @@ class Fiskalizacija():
                         ,name, type, time_stamp 
                         ,sadrzaj, odgovor, greska
                         ,fiskal_prostor_id, invoice_id, time_obr
-                         )
-                VALUES ( %s, %s, %s,  %s, %s, %s,  %s, %s, %s,  %s, %s, %s );
+                        ,company_id )
+                VALUES ( %s, %s, %s,  %s, %s, %s,  %s, %s, %s,  %s, %s, %s, %s );
             """, ( self.uid, self.uid, datetime.now(),
                    self.zaglavlje.IdPoruke, self.msgtype, datetime.now(),
                    str(self.poruka_zahtjev), str(self.poruka_odgovor), self.greska,
-                   fiskal_prostor_id, invoice_id, time_obr
+                   fiskal_prostor_id, invoice_id, time_obr,
+                   company_id
                   ) 
         )
 
     def echo(self):
         try:
-            odgovor=self.client2.service.echo('TEST PORUKA')
+            odgovor = self.client2.service.echo('TEST PORUKA')
+            poruka_zahtjev =  self.client2.last_sent().str()
             self.poruka_zahtjev =  self.client2.last_sent()
-            self.poruka_odgovor=odgovor
-            self.greska=None
+            self.poruka_odgovor = odgovor
         except:
-            self.greska="No reply recived or some unexpected error occured!"#BOLE: potrebno porvjeriti jel radi.. treba generirati gresku!
+            #return 'No ECHO reply','TEST PORUKA'
+			self.greska ='Ostale greske - Nema Odgovor! '
         finally:
             self.log_fiskal()
-        return True
-    
+        return self.poruka_odgovor
+
     def posalji_prostor(self):
-        self.greska =''
+        res=False
         try:
             odgovor=self.client2.service.poslovniProstor(self.zaglavlje, self.prostor)
             self.poruka_zahtjev =  self.client2.last_sent()
             self.poruka_odgovor = odgovor
+            if odgovor[0] == 200:
+                res = True
+            elif odgovor[0] == 500:
+                self.greska = '=>'.join(( odgovor[1]['Greske'][0][0]['SifraGreske'],
+                                          odgovor[1]['Greske'][0][0]['PorukaGreske'].replace('http://www.apis-it.hr/fin/2012/types/','')
+                                       ))
         except:
-            return 'Error - no reply!', self.poruka
+            self.greska ='Nepoznata vrsta odgovora!'  #odgovor[0] not in (200,500)
         finally:
             self.log_fiskal()
         return self.poruka_odgovor

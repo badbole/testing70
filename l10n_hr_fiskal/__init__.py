@@ -24,11 +24,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-
+import fiskalizacija #first to add res_users fields
 import certificate
-import fiskalizacija
-#import company  ##ovo prebaceno u fiskalizacija.py
-import account_invoice
 import account
+import account_invoice
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

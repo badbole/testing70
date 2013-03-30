@@ -53,16 +53,15 @@
 					<newline/>
 					<group col="4" colspan="4">
 						<button name="button_test_echo" string="TEST ECHO" type="object" />
-						<!--button name="button_test_racun" string="TEST RACUN FIXDATA" type="object" /-->
-						<button name="button_prostor_prijava" string="PRIJAVA PROSTORA" type="object" />
-					</group>	
-
+						<button name="button_prijavi_prostor" string="Prijava prostora" type="object" />
+						<button name="button_odjavi_prostor" string="Odjava prostora" type="object" />
+					</group>
 					<newline/>
 
 					<notebook colspan="4">
 						<page string="Adresa">
-							<field name="ulica" />
-							<field name="kbr" />
+							<field name="ulica"/>
+							<field name="kbr"/>
 							<field name="kbr_dodatak"/>
 							<field name="posta"/>
 							<field name="naselje"/>
@@ -106,9 +105,10 @@
 			<field name="model">fiskal.log</field>
 			<field name="type">tree</field>
 			<field name="arch" type="xml">
-				<tree string="tree_string">
+				<tree string="Poslane poruke">
 					<field name="name" select="1" />
 					<field name="type" />
+					<field name="greska"/>
 					<field name="time_stamp" />
 					<field name="time_obr" />
 				</tree>
@@ -127,19 +127,20 @@
 					<field name="time_stamp"/>
 					<field name="time_obr" />
 					<field name="user_id"/>
+					<field name="company_id"/>
 					<newline/>
 					<notebook colspan="4">
 						<page string="Poruka">
 							<field name="invoice_id"/>
 							<field name="fiskal_prostor_id"/>
 							<newline/>
-							<field name="greska"/>
+							<field name="greska" colspan="4"/>
 						</page>
-						<page string="Sadrzaj poruke">
-							<field name="sadrzaj"/>
+						<page string="Poslana poruka">
+							<field name="sadrzaj" nolabel="1"/>
 						</page>
 						<page string="Odgovor na poruku">
-							<field name="odgovor" />
+							<field name="odgovor"  nolabel="1"/>
 						</page>
 					</notebook>
 				</form>

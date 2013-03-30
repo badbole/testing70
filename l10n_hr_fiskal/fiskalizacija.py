@@ -35,7 +35,7 @@ from openerp.tools.translate import _
 class res_users(osv.osv):
     _inherit = "res.users"
     _columns = {
-        'oib': fields.related('partner_id','vat', string='OIB osobe' ), # relation='res.partner'
+        'oib': fields.related('partner_id','vat',type='char', string='OIB osobe' ), # relation='res.partner'
         }
 res_users()
 
@@ -73,12 +73,11 @@ class fiskal_prostor(osv.Model):
         'spec':fields.char('OIB Informaticke tvrtke', required="True", size=1000),
         'uredjaj_ids': fields.one2many('fiskal.uredjaj','prostor_id','Uredjaji'),
         'fiskal_log_ids':fields.one2many('fiskal.log','fiskal_prostor_id','Logovi poruka', help="Logovi poslanih poruka prema poreznoj upravi"),
-        'state':fields.selection ((  ('draft','Upis')
-                                    ,('active','Aktivan')
-                                    ,('closed','Zatvoren')
+        'state':fields.selection (( ('draft','Upis')
+                                   ,('active','Aktivan')
+                                   ,('closed','Zatvoren')
                                    )
-                                  ,'Status zatvaranja'),
-        
+                                  ,'Status prostora'),
                 }
 
     _defaults = {
@@ -102,7 +101,7 @@ class fiskal_prostor(osv.Model):
         #kbr must be numeric 
         #posta = zip (numeric)
         return True
-      
+    
     def get_fiskal_data(self, cr, uid, company_id=False, context=None):
         fina_cert = False
         if not company_id:
@@ -145,43 +144,32 @@ class fiskal_prostor(osv.Model):
 
         return wsdl_file, key_file, cert_file
         
-
     def button_test_echo(self, cr, uid, ids, fields, context=None):
-        
         if context is None:
             context ={}    
         for prostor in self.browse(cr, uid, ids):
             wsdl, key, cert = self.get_fiskal_data(cr, uid, company_id=prostor.company_id.id)
-            a = Fiskalizacija('echo', wsdl, cert, key, cr, uid)
-            #a.init('Echo', wsdl, key, cert, cr, uid)
-            #start_time=a.time_formated() #vrijeme pocetka obrade
+            a = Fiskalizacija('echo', wsdl, key, cert, cr, uid, oe_obj = prostor)
             odgovor = a.echo()
-        """
         return odgovor
-        
-        stop_time=a.time_formated()
 
-        t_obrada=stop_time['time_stamp']-start_time['time_stamp']
-        time_ob='%s.%s s'%(t_obrada.seconds, t_obrada.microseconds)
-               
-        values={
-                'name':str(uuid.uuid1()),
-                'type':'echo',
-                'sadrzaj':odgovor[1],
-                'timestamp':start_time['time_stamp'], 
-                'time_obr':time_ob,
-                'odgovor':odgovor[0]
-                
-                }
-        return self.pool.get('fiskal.log').create(cr,uid,values,context=context)
-        """
-    def button_prostor_prijava(self, cr, uid, ids, fields, context=None):
+    def button_prijavi_prostor(self, cr, uid, ids, fields, context=None):
+        if context is None:
+            context ={}
+        self.posalji_prostor(cr, uid, ids, fields, 'prostor_prijava', context=context)
 
+    def button_odjavi_prostor(self, cr, uid, ids, fields, context=None):
+        if context is None:
+            context ={}
+        self.posalji_prostor(cr, uid, ids, fields, 'prostor_odjava', context=context)
+
+
+    def posalji_prostor(self, cr, uid, ids, fields, msgtype, context=None):
         prostor=self.browse(cr, uid, ids)[0]
-        wsdl, cert, key = self.get_fiskal_data(cr, uid, company_id=prostor.company_id.id)
+        wsdl, key, cert = self.get_fiskal_data(cr, uid, company_id=prostor.company_id.id)
         if not wsdl:
             return False
-        a = Fiskalizacija('prostor_prijava', wsdl, cert, key, cr, uid, oe_id = ids[0])
+        a = Fiskalizacija(msgtype, wsdl, key, cert, cr, uid, oe_obj = prostor)
                 
         
         """BOLE: u svakom slučaju je datum danas!
@@ -192,20 +180,16 @@ class fiskal_prostor(osv.Model):
             datum_danas = prostor.datum_primjene 
         """    
         datum_danas=a.start_time['datum']
-        
-        
+                
         ##prvo punim zaglavlje
         a.zaglavlje.DatumVrijeme = a.start_time['datum_vrijeme']
-        a.zaglavlje.IdPoruke = str(uuid.uuid1()) #moze i 4 
-        ## podaci o pos prostoru
-        #a.pp = a.client2.factory.create('tns:PoslovniProstor') 
-        a.prostor.Oib= prostor.company_id.partner_id.vat[2:] #'57699704120' Mora odgovarati OIB-u sa Cert-a
-        """
-        if invoice.company_id.fina_certifikat_id.cert_type == 'fina_prod':
-            a.racun.Oib = invoice.company_id.partner_id.vat[2:]  # pravi OIB company
-        elif invoice.company_id.fina_certifikat_id.cert_type == 'fina_demo':
-            a.racun.Oib = invoice.uredjaj_id.prostor_id.spec[2:]  #OIB IT firme 
-        """
+        a.zaglavlje.IdPoruke = str(uuid.uuid4())  
+        
+        if prostor.company_id.fina_certifikat_id.cert_type == 'fina_prod':
+            a.prostor.Oib = prostor.company_id.partner_id.vat[2:]  # pravi OIB company
+        elif prostor.company_id.fina_certifikat_id.cert_type == 'fina_demo':
+            a.prostor.Oib = prostor.spec[2:]  #OIB IT firme Mora odgovarati OIB-u sa Cert-a
+        
         a.prostor.OznPoslProstora=prostor.oznaka_prostor
         a.prostor.RadnoVrijeme=prostor.radno_vrijeme
         a.prostor.DatumPocetkaPrimjene=datum_danas 
@@ -226,13 +210,14 @@ class fiskal_prostor(osv.Model):
         
         adresni_podatak.Adresa = adresa
         a.prostor.AdresniPodatak = adresni_podatak
-        a.prostor.__delattr__('OznakaZatvaranja') ##hmhmmm i ovo treba paziti kak sa time! jer mora jednom imati i opciju zatvaranja!
+        a.prostor.OznakaZatvaranja ='Z'
+        if not(msgtype == 'prostor_odjava'): 
+            a.prostor.__delattr__('OznakaZatvaranja') 
         
         odgovor = a.posalji_prostor()
         if odgovor[0]==200:
             #Ovdje jos treba zapisati datum primjene!
             self.write(cr, uid, prostor.id, {'datum_primjene': datum_danas })
-            #Bole : ovo mi ne radi !
         return True
 
 class fiskal_uredjaj(osv.Model):
@@ -240,10 +225,10 @@ class fiskal_uredjaj(osv.Model):
     _description = 'Podaci o poslovnim prostorima za potrebe fiskalizacije'
 
     def name_get(self, cr, uid, ids, context=None):
-       res = {}
-       for u in self.browse(cr, uid, ids, context=context):
-           res[u.id] = ' / '.join( (u.prostor_id.name, u.name) )
-       return res.items()
+        res = {}
+        for u in self.browse(cr, uid, ids, context=context):
+            res[u.id] = ' / '.join( (u.prostor_id.name, u.name) )
+        return res.items()
     
     _columns = {
         'name': fields.char('Naziv naplatnog uredjaja', size=128 , select=1),
@@ -257,8 +242,8 @@ class fiskal_log(osv.Model):
     _description='Fiskal log'    
     
     def _get_log_type(self,cursor,user_id, context=None):
-        return (('prostor_prijava','Prijava Prostora'),
-                ('prostor_odjava','Prijava Prostora'),
+        return (('prostor_prijava','Prijava prostora'),
+                ('prostor_odjava','Odjava prostora'),
                 ('racun','Fiskalizacija racuna'),
                 ('racun_ponovo','Ponovljeno slanje racuna'),
                 ('echo','Echo test poruka '),
@@ -266,83 +251,16 @@ class fiskal_log(osv.Model):
                )
         
     _columns ={
-        'name': fields.char('Oznaka', size=40, help="Jedinstvena oznaka komunikacije "),
-        'type': fields.selection (_get_log_type,'Vrsta poruke'),
-        'invoice_id': fields.many2one('account.invoice', "Racun"),
-        'fiskal_prostor_id': fields.many2one('fiskal.prostor', "P.prostor"),
-        'sadrzaj':fields.text('Poslana poruka'),
-        'odgovor':fields.text('Odgovor'),
-        'greska':fields.text('Greska'),
-        'time_stamp':fields.datetime('Vrijeme'),
-        'time_obr':fields.char('Time for response',size=16,help='Vrijeme obrade podataka'), #vrijeme obrade prmljeno_vrijeme-poslano_vrijem
-        #'origin_id':fields.integer('Origin'), # id dokumenta sa kojeg dolazi.. za prostor i za racun, echo ne koristi.
-        'user_id': fields.many2one('res.users', 'User',readonly=False),
+        'name': fields.char('Oznaka', size=64, help="Unique communication mark", readonly=True),
+        'type': fields.selection (_get_log_type,'Message type', readonly=True),
+        'invoice_id': fields.many2one('account.invoice', 'Invoice', readonly=True),
+        'fiskal_prostor_id': fields.many2one('fiskal.prostor', 'Office', readonly=True),
+        'sadrzaj':fields.text('Sent message', readonly=True),
+        'odgovor':fields.text('Reply', readonly=True),
+        'greska':fields.text('Error', readonly=True),
+        'time_stamp':fields.datetime('Time', readonly=True),
+        'time_obr':fields.char('Vrijeme obrade',size=16, help='Vrijeme obrade podataka', readonly=True), #vrijeme obrade prmljeno_vrijeme-poslano_vrijem
+        'user_id': fields.many2one('res.users', 'Person', readonly=True),
+        'company_id':fields.many2one('res.company','Company', required=False),
     }
     
-    
-    
-    
-    
-    
-    
-    """    
-BOLE: ovo je zaostatak.. treba izbaciti.. .
-    def button_test_racun(self,cr,uid,ids,fields,context=None):
-        logs_obj=self.pool.get('l10n.hr.log')
-        
-        a = Fiskalizacija()
-        tstamp = datetime.datetime.now()
-        tmptime  = '%s.%s.%s %s:%s:%s' % (tstamp.day, tstamp.month, tstamp.year, tstamp.hour, tstamp.minute, tstamp.second)
-        a.t = tstamp
-        # podrazumijevam da su podaci obavezni i ne provjeravam jel postoje...
-        a.zaglavlje.DatumVrijeme = '%02d.%02d.%02dT%02d:%02d:%02d' % (tstamp.day, tstamp.month, tstamp.year, tstamp.hour, tstamp.minute, tstamp.second)
-        a.zaglavlje.IdPoruke = str(uuid.uuid4())
-        
-        #main_comp=self.pool.get('res.company').browse()
-        a.racun.Oib = "57699704120" #ucitaj ! OIB korisnika
-        a.racun.USustPdv = 'true'  ## sustav_pdv
-        a.racun.DatVrijeme = a.zaglavlje.DatumVrijeme 
-        a.racun.OznSlijed = 'P' ## sljed_racuna
-        a.racun.BrRac.BrOznRac = '1'
-        a.racun.BrRac.OznPosPr = 'TESTIRAMO' ## name !! pazi !! nesmije imati razmake u nazivu.. prije sljanaj replace ' '->'' !!!
-        a.racun.BrRac.OznNapUr = '12'  ## oznaka_pp
-        a.porez = a.client2.factory.create('tns:Porez')
-        a.porez.Stopa = "25.00"
-        a.porez.Osnovica = "100.00"
-        a.porez.Iznos = "25.00"
-        a.racun.Pdv.Porez.append(a.porez)
-
-        a.racun.IznosUkupno = "125.00" # 
-        a.racun.NacinPlac = "G" # Nacin placanja
-        a.racun.OibOper = "57699704120"
-        a.racun.NakDost = "false"  ##TODO rutina koja provjerava jel prvi puta ili ponovljeno sranje!
-
-        a.izracunaj_zastitni_kod(tmptime)
-        #odgovor_string = a.echo()  moze i ovo radi!
-        odgovor_string=a.posalji_racun()
-        odgovor_array = odgovor_string[1]
-        # ... sad tu ima odgovor.Jir
-        
-        if odgovor_array.Jir:
-            jir ='JIR - '+ odgovor_array.Jir
-        else :
-            jir='greska u komunikaciji'
-        ##ovo sam dodao samo da vidim vrijeme odaziva...
-        tstamp2=datetime.datetime.now()
-        vrijeme_obrade=tstamp2-tstamp
-        time_obr='%s.%s s'%(vrijeme_obrade.seconds, vrijeme_obrade.microseconds)
-        ################################################
-        
-        odgovor= odgovor_string  
-        values={
-                'name':jir,
-                'type':'racun',
-                'sadrzaj':odgovor,
-                'timestamp':tstamp, 
-                'time_obr':time_obr,
-                
-                }
-        log_id=logs_obj.create(cr,uid,values,context=context)
-        return log_id
-#fiskal_pprostor()
-"""

@@ -54,7 +54,7 @@ class account_invoice(osv.Model):
                                             'Nacin placanja', required=True)   
                }
     _defaults = {
-                 'nac_plac':'T' # TODO : postaviti u bazi pitanje kaj da bude default!
+                 'nac_plac':'G' # TODO : postaviti u bazi pitanje kaj da bude default!
                  }
 
     def copy(self, cr, uid, id, default=None, context=None):
@@ -75,11 +75,16 @@ class account_invoice(osv.Model):
         return True
 
     def button_fiscalize(self, cr, uid, ids, context=None):
+        #invoice= self.browse(cr, uid, [id])[0]
+        #if invoice.jir == 'PONOVITI SLANJE!':
         if context is None:
             context = {}
         for invoice in self.browse( cr, uid, ids, context):
             self.fiskaliziraj(cr, uid, invoice.id, context=context)
-
+        #elif self.browse(cr, uid, [id])[0].jir != None:
+        #    raise osv.except_osv(_('Already done!'), _('This invoice is already fiscalized!.'))
+        
+        
     def get_fiskal_taxes(self, cr, uid, invoice, a, context=None):
         res=[]
         
@@ -136,31 +141,26 @@ class account_invoice(osv.Model):
         if context is None:
             context = {}
         prostor_obj= self.pool.get('fiskal.prostor')
-                    
         invoice= self.browse(cr, uid, [id])[0]
         
         #tko pokusava fiskalizirati?
         if not invoice.fiskal_user_id:
             self.write(cr, uid, [id], {'fiskal_user_id':uid})
-
-        if not invoice.fiskal_user_id:
-            self.write(cr, uid, [id], {'fiskal_user_id':uid})
-            
         invoice= self.browse(cr, uid, [id])[0] #refresh
 
         #TODO - posebna funkcija za provjeru npr. invoice_fiskal_valid()
 
         if not invoice.fiskal_user_id.oib:
-            raise osv.except_osv(_('Error'), _('Neispravan OIB korisnika!'))
+            raise osv.except_osv(_('Error'), _('Current user VAT is missing or not valid!'))
         
-        wsdl, cert, key = prostor_obj.get_fiskal_data(cr, uid, company_id=invoice.company_id.id)
+        wsdl, key, cert = prostor_obj.get_fiskal_data(cr, uid, company_id=invoice.company_id.id)
         if not wsdl:
             return False
-        a = Fiskalizacija('Racun', wsdl, cert, key, cr, uid, oe_id = id)
+        a = Fiskalizacija('racun', wsdl, key, cert, cr, uid, oe_obj = invoice)
         
         start_time=a.time_formated()
         a.t = start_time['datum'] 
-        a.zaglavlje.DatumVrijeme = start_time['datum_vrijeme'] #TODO UTC -> Europe/Zagreb 
+        a.zaglavlje.DatumVrijeme = start_time['datum_vrijeme'] 
         a.zaglavlje.IdPoruke = str(uuid.uuid4())
         
         dat_vrijeme = invoice.vrijeme_izdavanja
@@ -174,10 +174,9 @@ class account_invoice(osv.Model):
         if invoice.company_id.fina_certifikat_id.cert_type == 'fina_prod':
             a.racun.Oib = invoice.company_id.partner_id.vat[2:]  # pravi OIB company
         elif invoice.company_id.fina_certifikat_id.cert_type == 'fina_demo':
-            a.racun.Oib = invoice.uredjaj_id.prostor_id.spec[2:]  #OIB IT firme , ionako samo oni mogu koristiti demo cert!
+            a.racun.Oib = invoice.uredjaj_id.prostor_id.spec[2:]  #OIB IT firme 
         else:
             pass #TODO Error
-                   
          
         a.racun.DatVrijeme = dat_vrijeme #invoice.vrijeme_izdavanja
         a.racun.OznSlijed = invoice.prostor_id.sljed_racuna #'P' ## sljed_racuna

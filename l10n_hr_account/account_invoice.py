@@ -59,10 +59,7 @@ class account_invoice(osv.osv):
                                   required=True, readonly=True, states={'draft':[('readonly',False)]}),
                 'date_delivery': fields.date('Delivery Date', readonly=True,
                                  states={'draft':[('readonly',False)]}, select=True, help="Keep empty to use the current date"),
-                ##BOLE: izbacio for now!
-                #'nacin_placanja': fields.selection([('G','Gotovina'), ('K','Kartice'), ('C','Cek'), ('T','Transakcijski'), ('O','Ostalo')], 'Nacin placanja', size=1, required=False, help="Nacin placanja za potrebe fiskalizacije."),
-
-               }
+                }
 
     _defaults = {
                  'reference_type': _get_default_reference_type,

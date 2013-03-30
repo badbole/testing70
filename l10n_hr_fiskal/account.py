@@ -1,12 +1,13 @@
 # -*- encoding: utf-8 -*-
 
-
+from openerp.tools.translate import _
 from openerp.osv import fields, osv
 
 class account_journal(osv.osv):
     _inherit = "account.journal"
     _columns = {
         'fiskal_active':fields.boolean('Fiskalizacija aktivna', help="Fiskalizacija aktivna" ),
+        'prostor_id':fields.many2one('fiskal.prostor','Prostor',help='Prostor naplatnog uredjaja.'),
         'fiskal_uredjaj_ids': fields.many2many('fiskal.uredjaj', string='Dopusteni naplatni uredjaji'),
                 }
     _defaults = {'fiskal_active': False, 
@@ -43,7 +44,15 @@ class account_move(osv.osv):
                 return res 
             if not invoice.type in ('out_invoice', 'out_refund'):  #samo izlazne racune  
                 return res 
-            fiskalni_sufiks = '/'.join( (invoice.uredjaj_id.prostor_id.oznaka_prostor, str(invoice.uredjaj_id.oznaka_uredjaj)))
+            #Bole:
+            if not invoice.prostor_id:
+                raise osv.except_osv(_('No sales place chosen!'), _('You should choose from wich place you are selling!'))
+            if not invoice.uredjaj_id:
+                raise osv.except_osv(_('No sales device chosen!'), _('You should choose your device for sale!'))
+            
+            if not invoice.company_id.fina_certifikat_id:
+                return res
+            fiskalni_sufiks = '/'.join( (invoice.uredjaj_id.prostor_id.oznaka_prostor, str(invoice.uredjaj_id.oznaka_uredjaj) ))
             for move in self.browse(cr, uid, ids):
                 new_name =  '/'.join( (move.name, fiskalni_sufiks) ) 
                 self.write(cr, uid, [move.id], {'name':new_name})

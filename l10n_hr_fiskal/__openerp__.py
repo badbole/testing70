@@ -65,7 +65,6 @@ Preduvjeti:
     'update_xml': [
                    'certificate_view.xml',
                    'fiskalizacija_view.xml',
-                   #'company_view.xml',
                    'security/ir.model.access.csv',
                    'account_view.xml',
                    'account_invoice_view.xml',

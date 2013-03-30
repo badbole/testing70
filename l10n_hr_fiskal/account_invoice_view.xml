@@ -13,12 +13,13 @@
             	<notebook position="inside">
 	                <page string="Fiskalizacija (CRO)">
 					    <group colspan="4">
-					    <field name="uredjaj_id"/> 
+					    <field name="uredjaj_id" string="Prostor/Blagajna"/>
 					    <field name="prostor_id"/> 
 						<newline/>
 						<field name="jir" string="JIR" readonly="True" />
 						<field name="zki" string="ZKI" readonly="True"  />
-				        <field name="fiskal_user_id" />  
+				        <field name="fiskal_user_id" readonly="True"/>
+				      	<field name="vrijeme_izdavanja" readonly="True"/> 
 						</group>
 						<field name="fiskal_log_ids" nolabel="1" readonly="True" colspan="4"/>
 	                </page>	

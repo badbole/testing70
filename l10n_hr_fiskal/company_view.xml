@@ -9,7 +9,8 @@
             <field name="arch" type="xml">
             	<notebook position="inside">
 	                <page string="Fiskalizacija">
-				        <field name="fina_certifikat_id"/>
+				        <field name="fina_certifikat_id" string="Fina certifikat"/>
+						<newline/>
 				        <field name="fiskal_prostor"/>
 	                </page>
                 </notebook>
