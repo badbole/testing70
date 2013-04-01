@@ -13,7 +13,7 @@
 			<field name="arch" type="xml">
 				<notebook position="inside">
 					<page string="Fiskalizacija">
-						<field name="fina_certifikat_id"/>
+						<field name="fina_certifikat_id" string="Certifikat"/>
 						<newline/>
 						<field name="fiskal_prostor_ids"/>
 					</page>
@@ -153,6 +153,17 @@
 			<field name="res_model">fiskal.prostor</field>
 			<field name="view_type">form</field>
 			<field name="view_mode">tree,form</field>
+			<!--field name="help" type="html">
+				<p class="oe_view_nocontent_create">
+					Click to add new location.
+				</p>
+				<p>
+					In order to send invoice data to Tax office, you need to
+					enter
+					some data about your sales office location, and some other info
+				</p>
+			</field-->
+
 		</record>
 		
 		<record id="fiskal_log_win_action" model="ir.actions.act_window" >
@@ -193,7 +204,7 @@
 			<field name="arch" type="xml">
 				<field name="company_id" position="after">
 					<field name="fiskal_type"/>
-					<field name="fiskal_percent"/>
+					<field name="fiskal_percent" placeholder="npr: 25.00"/>
 				</field>
 			</field>
 		</record>

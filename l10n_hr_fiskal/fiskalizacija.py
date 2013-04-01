@@ -216,8 +216,7 @@ class fiskal_prostor(osv.Model):
         
         odgovor = a.posalji_prostor()
         if odgovor[0]==200:
-            #Ovdje jos treba zapisati datum primjene!
-            self.write(cr, uid, prostor.id, {'datum_primjene': datum_danas })
+            self.write(cr, uid, prostor.id, {'datum_primjene': a.start_time['time_stamp'].strftime(tools.DEFAULT_SERVER_DATETIME_FORMAT) })
         return True
 
 class fiskal_uredjaj(osv.Model):
