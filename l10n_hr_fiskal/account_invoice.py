@@ -42,7 +42,7 @@ class account_invoice(osv.Model):
                 'zki': fields.char('ZKI', size=64, readonly=True),
                 'jir': fields.char('JIR',size=64 , readonly=True),
                 'uredjaj_id':fields.many2one('fiskal.uredjaj', 'Naplatni uredjaj', help ="Naplatni uređaj na kojem se izdaje racun"),
-                'prostor_id':fields.many2one('fiskal.prostor', 'Poslovni prostor', help ="Poslovni prostor u kojem se izdaje racun"),
+                #'prostor_id':fields.many2one('fiskal.prostor', 'Poslovni prostor', help ="Poslovni prostor u kojem se izdaje racun"),
                 'fiskal_log_ids':fields.one2many('fiskal.log','invoice_id','Logovi poruka', help="Logovi poslanih poruka prema poreznoj upravi"),
                 'nac_plac':fields.selection((
                                              ('G','GOTOVINA'),
@@ -65,7 +65,8 @@ class account_invoice(osv.Model):
             'zki':False,
             'jir': False,
             'fiskal_log_ids': False,
-            
+            #'prostor_id': False,
+            #'nac_plac': False,
         })
         return super(account_invoice, self).copy(cr, uid, id, default, context)
        
@@ -120,7 +121,7 @@ class account_invoice(osv.Model):
         
         for tax in invoice.tax_line:
             if not tax.tax_code_id:
-                continue # TODO special cases without tax code, or with base tax code without tax if found
+                continue #TODO special cases without tax code, or with base tax code without tax if found
             val={ 'tax_code': tax.tax_code_id.id,
                   'fiskal_type': tax.tax_code_id.fiskal_type,
                   'Naziv': tax.tax_code_id.name,
@@ -134,24 +135,27 @@ class account_invoice(osv.Model):
             get_factory(val)            
         return res
 
-
     def fiskaliziraj(self, cr, uid, id, context=None):
         """ Fiskalizira jedan izlazni racun
         """
         if context is None:
             context = {}
+            
         prostor_obj= self.pool.get('fiskal.prostor')
         invoice= self.browse(cr, uid, [id])[0]
         
         #tko pokusava fiskalizirati?
         if not invoice.fiskal_user_id:
             self.write(cr, uid, [id], {'fiskal_user_id':uid})
+
+        if not invoice.fiskal_user_id:
+            self.write(cr, uid, [id], {'fiskal_user_id':uid})
+            
         invoice= self.browse(cr, uid, [id])[0] #refresh
 
         #TODO - posebna funkcija za provjeru npr. invoice_fiskal_valid()
-
         if not invoice.fiskal_user_id.oib:
-            raise osv.except_osv(_('Error'), _('Current user VAT is missing or not valid!'))
+            raise osv.except_osv(_('Error'), _('Neispravan OIB korisnika!'))
         
         wsdl, key, cert = prostor_obj.get_fiskal_data(cr, uid, company_id=invoice.company_id.id)
         if not wsdl:
@@ -160,7 +164,7 @@ class account_invoice(osv.Model):
         
         start_time=a.time_formated()
         a.t = start_time['datum'] 
-        a.zaglavlje.DatumVrijeme = start_time['datum_vrijeme'] 
+        a.zaglavlje.DatumVrijeme = start_time['datum_vrijeme'] #TODO UTC -> Europe/Zagreb 
         a.zaglavlje.IdPoruke = str(uuid.uuid4())
         
         dat_vrijeme = invoice.vrijeme_izdavanja
@@ -179,7 +183,7 @@ class account_invoice(osv.Model):
             pass #TODO Error
          
         a.racun.DatVrijeme = dat_vrijeme #invoice.vrijeme_izdavanja
-        a.racun.OznSlijed = invoice.prostor_id.sljed_racuna #'P' ## sljed_racuna
+        a.racun.OznSlijed = invoice.uredjaj_id.prostor_id.sljed_racuna #'P' ## sljed_racuna
 
         #dijelovi broja racuna
         BrojOznRac, OznPosPr, OznNapUr = invoice.number.rsplit('/',2)
@@ -193,14 +197,14 @@ class account_invoice(osv.Model):
         a.racun.BrRac.OznPosPr = OznPosPr
         a.racun.BrRac.OznNapUr = OznNapUr
         
-        a.racun.USustPdv = invoice.prostor_id.sustav_pdv and "true" or "false"
-        if invoice.prostor_id.sustav_pdv:
+        a.racun.USustPdv = invoice.uredjaj_id.prostor_id.sustav_pdv and "true" or "false"
+        if invoice.uredjaj_id.prostor_id.sustav_pdv:
             self.get_fiskal_taxes(cr, uid, invoice, a, context=context)
         
         a.racun.IznosUkupno = fiskal_num2str(invoice.amount_total)
         
         a.racun.NacinPlac = invoice.nac_plac
-        a.racun.OibOper = invoice.fiskal_user_id.oib[2:]
+        a.racun.OibOper = invoice.fiskal_user_id.oib[2:]  #"57699704120"
         
         if not invoice.zki:
             a.racun.NakDost = "false"  ##TODO rutina koja provjerava jel prvi puta ili ponovljeno sranje!
@@ -217,4 +221,20 @@ class account_invoice(osv.Model):
             self.write(cr,uid,id,{'jir':jir})
         else:
             self.write(cr,uid,id,{'jir':'PONOVITI SLANJE!'})
+            
+            
+
+    def refund(self, cr, uid, ids, date=None, period_id=None, description=None, journal_id=None):
+        #Where is the context, per invoice method?
+        #This approach is slow, updating after creating, but maybe better than copy-paste whole method
+        #FUBAR 
+        res = super(account_invoice, self).refund(cr, uid, ids, date=date, period_id=period_id, description=description, journal_id=journal_id)
+        source_invoice = self.browse(cr, uid, ids)[0] # what if we get more then one?
+        self.write(cr, uid, res,
+                   {'uredjaj_id': source_invoice.uredjaj_id and source_invoice.uredjaj_id.id or False,
+                    })
+            
+                        
+        return res
+            
             

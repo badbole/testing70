@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
 	<data>
-
+<!-- res.users OIB -->
+		<record id="view_users_form_fiskal_oib" model="ir.ui.view">
+			<field name="name">res.users.form_fiskal_oib</field>
+			<field name="model">res.users</field>
+			<field name="type">form</field>
+			<field name="inherit_id" ref="base.view_users_form"/>
+			<field name="arch" type="xml">
+				<field name="active" position="after">
+					<field name="oib"/>
+				</field>
+			</field>
+		</record>
 		
 
 		<!-- Company cert, prostor-->
@@ -13,7 +24,7 @@
 			<field name="arch" type="xml">
 				<notebook position="inside">
 					<page string="Fiskalizacija">
-						<field name="fina_certifikat_id"/>
+						<field name="fina_certifikat_id" string="Certifikat"/>
 						<newline/>
 						<field name="fiskal_prostor_ids"/>
 					</page>
@@ -98,7 +109,33 @@
 
 			</field>
 		</record>
+		
+		<!--Fiskal Uredjaj-->
+		<record  id="fiskal_uredjaj_tree_view" model="ir.ui.view">
+			<field name="name">fiskal.uredjaj.tree.view</field>
+			<field name="model">fiskal.uredjaj</field>
+			<field name="type">tree</field>
+			<field name="arch" type="xml">
+				<tree string="Fiskalizacija naplatnog uredjaja">
+					<field name="name"/>
+					<field name="prostor_id"/>
+					<field name="oznaka_uredjaj"/>
+				</tree>
 
+			</field>
+		</record>	
+		<record id="fiskal_uredjaj_form_view" model="ir.ui.view" >
+			<field name="name">fiskal_uredjaj_form_view</field>
+			<field name="model">fiskal.uredjaj</field>
+			<field name="type">form</field>
+			<field name="arch" type="xml">
+				<form string="Fiskalizacija">	
+					<field name="name"/>
+					<field name="prostor_id"/>
+					<field name="oznaka_uredjaj"/>
+				</form>
+			</field>
+		</record>
 		<!-- log view tree-->
 		<record id="fiskal_log_tree_view" model="ir.ui.view" >
 			<field name="name">fiskal_log_tree_view</field>
@@ -154,7 +191,12 @@
 			<field name="view_type">form</field>
 			<field name="view_mode">tree,form</field>
 		</record>
-		
+		<record id="fiskal_uredjaj_action" model="ir.actions.act_window" >
+			<field name="name">fiskal_uredjaj_form</field>
+			<field name="res_model">fiskal.uredjaj</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">tree,form</field>
+		</record>
 		<record id="fiskal_log_win_action" model="ir.actions.act_window" >
 			<field name="name">fiskal_log_form</field>
 			<field name="res_model">fiskal.log</field>
@@ -164,6 +206,7 @@
 
 		<menuitem id="menu_fiskal_root" name="Fiskalizacija" parent="base.menu_res_company_global" sequence="100" />
 		<menuitem id="menu_action_fiskal_prostor" name="Prijava Objekata" action="fiskal_prostor_action" parent="menu_fiskal_root" sequence="100" />
+		<menuitem id="menu_action_fiskal_uredjaj" name="Prijava naplatnog uredjaja" action="fiskal_uredjaj_action" parent="menu_fiskal_root" sequence="120" />
 		<menuitem id="menu_fiskal_log" name="Dnevnik komunikacije" action="fiskal_log_win_action" parent="menu_fiskal_root" sequence="200" />
 		
 
@@ -171,18 +214,7 @@
 	
 
 
-		<!-- res.users OIB -->
-		<record id="view_users_form_fiskal_oib" model="ir.ui.view">
-			<field name="name">res.users.form_fiskal_oib</field>
-			<field name="model">res.users</field>
-			<field name="type">form</field>
-			<field name="inherit_id" ref="base.view_users_form"/>
-			<field name="arch" type="xml">
-				<field name="active" position="after">
-					<field name="oib"/>
-				</field>
-			</field>
-		</record>
+		
 
 		<!-- account.tax.code fiskal type & percent -->
 		<record id="account.view_tax_code_form_fiskal" model="ir.ui.view">
@@ -193,7 +225,7 @@
 			<field name="arch" type="xml">
 				<field name="company_id" position="after">
 					<field name="fiskal_type"/>
-					<field name="fiskal_percent"/>
+					<field name="fiskal_percent" placeholder="npr: 25.00"/>
 				</field>
 			</field>
 		</record>

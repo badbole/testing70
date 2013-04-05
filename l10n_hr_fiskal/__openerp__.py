@@ -28,7 +28,6 @@
 {
     "name" : "Croatian localization - Fiscalization module",
     "description" : """
-
 Fiskalizacija izdanih računa
 ============================
 
@@ -61,7 +60,6 @@ Preduvjeti:
                 ],
     #'external_dependencies':{'python':['m2crypto','pyxmlsec'],
     #                         'bin':'libxmlsec-dev'},
-    'init_xml': [],
     'update_xml': [
                    'certificate_view.xml',
                    'fiskalizacija_view.xml',
@@ -69,8 +67,6 @@ Preduvjeti:
                    'account_view.xml',
                    'account_invoice_view.xml',
                    ],
-    "demo" : [],
-    'test' : [],
     "active": False,
     "installable": True,
 }

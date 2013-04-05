@@ -1,13 +1,16 @@
 # -*- encoding: utf-8 -*-
 
-from openerp.tools.translate import _
-from openerp.osv import fields, osv
+
+from openerp.osv import fields, osv, orm
+from tools.translate import _
+
 
 class account_journal(osv.osv):
     _inherit = "account.journal"
     _columns = {
         'fiskal_active':fields.boolean('Fiskalizacija aktivna', help="Fiskalizacija aktivna" ),
         'prostor_id':fields.many2one('fiskal.prostor','Prostor',help='Prostor naplatnog uredjaja.'),
+
         'fiskal_uredjaj_ids': fields.many2many('fiskal.uredjaj', string='Dopusteni naplatni uredjaji'),
                 }
     _defaults = {'fiskal_active': False, 
@@ -41,21 +44,24 @@ class account_move(osv.osv):
         if res:
             invoice = context.get('invoice', False)
             if not invoice:
-                return res 
+                return res
             if not invoice.type in ('out_invoice', 'out_refund'):  #samo izlazne racune  
                 return res 
             #Bole:
             if not invoice.prostor_id:
-                raise osv.except_osv(_('No sales place chosen!'), _('You should choose from wich place you are selling!'))
+                raise osv.except_osv(_('Nije odabran prodajni prostor!'), _('Odaberite iz kojeg prostora vršite prodaju'))
+#KGB:       if not (invoice.company_id.country_id and invoice.company_id.country_id.code=='HR' or False):
+#                return res
+
             if not invoice.uredjaj_id:
-                raise osv.except_osv(_('No sales device chosen!'), _('You should choose your device for sale!'))
+                raise osv.except_osv(_('Greška'), _('Nije odabran naplatni uredjaj!'))
             
-            if not invoice.company_id.fina_certifikat_id:
-                return res
-            fiskalni_sufiks = '/'.join( (invoice.uredjaj_id.prostor_id.oznaka_prostor, str(invoice.uredjaj_id.oznaka_uredjaj) ))
+            fiskalni_sufiks = '/'.join( (invoice.uredjaj_id.prostor_id.oznaka_prostor, str(invoice.uredjaj_id.oznaka_uredjaj)))
             for move in self.browse(cr, uid, ids):
                 new_name =  '/'.join( (move.name, fiskalni_sufiks) ) 
                 self.write(cr, uid, [move.id], {'name':new_name})
+                if not invoice.company_id.fina_certifikat_id:
+                    return res
                 if invoice.journal_id.fiskal_active: #samo oznacene journale
                     self.pool.get('account.invoice').fiskaliziraj(cr, uid, invoice.id, context)
         return res

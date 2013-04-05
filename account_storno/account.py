@@ -24,7 +24,6 @@
 ##############################################################################
 
 from osv import fields, osv, orm
-import time
 from openerp.tools import float_compare
 from openerp.tools.translate import _
 import decimal_precision as dp
@@ -55,7 +54,6 @@ class account_move_line(osv.osv):
     #('credit_debit1', 'CHECK (credit*debit=0)',  'Wrong credit or debit value in accounting entry !'),
     #('credit_debit2', 'CHECK (credit+debit>=0)', 'Wrong credit or debit value in accounting entry !'),
     #]
-
     # credit_debit1 is valid constraint. Clear message   
     # credit_debit2 is replaced with dummy constraint that is always true.   
 
@@ -98,9 +96,7 @@ class account_model_line(osv.osv):
     ]
 
 
-
-
-#Trigger example 
+#Trigger example for paranoid 
 #For Storno accounting Tax/Base amount always == debit + credit   
 """
         cr.execute('''

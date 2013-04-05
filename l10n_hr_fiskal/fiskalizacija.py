@@ -77,7 +77,7 @@ class fiskal_prostor(osv.Model):
                                    ,('active','Aktivan')
                                    ,('closed','Zatvoren')
                                    )
-                                  ,'Status prostora'),
+                                  ,'Status zatvaranja'),
                 }
 
     _defaults = {
@@ -109,11 +109,9 @@ class fiskal_prostor(osv.Model):
             company_id = user_obj.browse(cr, uid, [uid])[0].company_id.id
         company_obj = self.pool.get('res.company')    
         company = company_obj.browse(cr, uid, [company_id])[0]
-
         fina_cert = company.fina_certifikat_id
-
         if not fina_cert:
-            raise osv.except_osv(_('Error'), _('No valid certificates found!'))
+            raise osv.except_osv(_('Error'), _('Neispravne postavke certifikata!'))
             return False
         cert_type = fina_cert.cert_type
         if not cert_type in ('fina_demo','fina_prod'):
@@ -127,7 +125,7 @@ class fiskal_prostor(osv.Model):
         if not ( fina_cert.state=='confirmed' and fina_cert.csr and fina_cert.crt):
             return False, False, False
 
-        #radi ako je server pokrenut sa -c: path 
+        #radi ako je server pokrenut sa -c: path = os.path.join(os.path.dirname(os.path.abspath(config.parser.values.config)),'oe_fiskal')
         path = os.path.join(os.path.dirname(os.path.abspath(config.rcfile)),'oe_fiskal')
         if not os.path.exists(path):
             os.mkdir(path,0777) #TODO 0660 or less
@@ -146,7 +144,7 @@ class fiskal_prostor(osv.Model):
         
     def button_test_echo(self, cr, uid, ids, fields, context=None):
         if context is None:
-            context ={}    
+            context ={}
         for prostor in self.browse(cr, uid, ids):
             wsdl, key, cert = self.get_fiskal_data(cr, uid, company_id=prostor.company_id.id)
             a = Fiskalizacija('echo', wsdl, key, cert, cr, uid, oe_obj = prostor)
@@ -216,8 +214,7 @@ class fiskal_prostor(osv.Model):
         
         odgovor = a.posalji_prostor()
         if odgovor[0]==200:
-            #Ovdje jos treba zapisati datum primjene!
-            self.write(cr, uid, prostor.id, {'datum_primjene': datum_danas })
+            self.write(cr, uid, prostor.id, {'datum_primjene': a.start_time['time_stamp'].strftime(tools.DEFAULT_SERVER_DATETIME_FORMAT) })
         return True
 
 class fiskal_uredjaj(osv.Model):

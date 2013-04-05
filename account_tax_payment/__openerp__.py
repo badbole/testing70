@@ -2,11 +2,11 @@
 ##############################################################################
 #
 #    OpenERP, Open Source Management Solution
-#    Module: account_storno
+#    Module: account_tax_payment
 #    Author: Goran Kliska
 #    mail:   gkliskaATgmail.com
 #    Copyright (C) 2011- Slobodni programi d.o.o., Zagreb
-#                  http://www.slobodni-programi.hr
+#              http://www.slobodni-programi.hr
 #    Contributions: 
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -24,36 +24,39 @@
 #
 ##############################################################################
 
+#import 
+
 {
-    "name" : "Account storno",
+    "name" : "Tax deductible on payment",
     "description" : """
 
 Author: Goran Kliska @ Slobodni programi d.o.o.
-        http://www.slobodni-programi.hr
-Contributions:
-  Ivan Vađić @ Slobodni programi d.o.o.
-  Tomislav Bošnjaković @ Storm Computers d.o.o.: Bugs report  
+        http://www.slobodni-programi.hr  
+Contributions: 
 
 Description:
- Enables Storno Accounting, a business practice commonly used in Eastern European countries.
- Adds new field "Posting policy" with values Storno/Contra on the Journal.
- For Storno Journals refund invoices are (usually) done in the same journal with negative *(-1) quantities.
-
- Countries where Storno accounting is mandatory or considered as best practice:
-     Czech Republic, Poland, Romania, Russia, Slovakia, Ukraine, Croatia, Bosnia and Herzegovina, Serbia, Romania, ...
-
-WARNING:
- This module is managing accounting, invoices, and refund wizard. 
- Other modules are required for stock, voucher, etc. storno posting.
+ Manages taxes that are deductible only when payed & reconciled.
+ Adds new field "Tax payment journal" for journal, and two new fields 
+ in Tax Code For Storno/Contra Tax Code used for additional posting 
+ on reconciliation of original invoice.
+ Additional posting is deleted on unreconciliation.  
+   
 
 """,
-    "version" : "11.1",
+    "version" : "0.1",
     "author" : "Slobodni programi d.o.o.",
     "category" : "Localisation/Croatia",
     "website": "http://www.slobodni-programi.hr",
-    'depends': ['account',],
+
+    'depends': [
+                'account',
+                'account_storno',
+                ],
     'init_xml': [],
-    'update_xml': [ 'account_view.xml',],
+    'update_xml': [ 
+                   'security/ir.model.access.csv',
+                   'account_view.xml',
+                   ],
     "demo_xml" : [],
     'test' : [],
     "active": False,

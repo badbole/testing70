@@ -14,6 +14,7 @@ from datetime import datetime
 from pytz import timezone
 
 
+
 #Globals
 keyFile = certFile = "" 
 
@@ -142,6 +143,7 @@ class DodajPotpis(MessagePlugin):
 
         return context
 
+
 def SetFiskalFilePaths(key, cert):
     global keyFile, certFile
     keyFile, certFile = key, cert
@@ -227,6 +229,7 @@ class Fiskalizacija():
             self.poruka_odgovor = odgovor
         except:
             #return 'No ECHO reply','TEST PORUKA'
+            poruka_zahtjev='TEST PORUKA' #TODO pitat suds di je zapelo...
 			self.greska ='Ostale greske - Nema Odgovor! '
         finally:
             self.log_fiskal()
