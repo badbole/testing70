@@ -48,12 +48,12 @@ class account_move(osv.osv):
             if not invoice.type in ('out_invoice', 'out_refund'):  #samo izlazne racune  
                 return res 
             #Bole:
-            if not invoice.prostor_id:
+            if not invoice.uredjaj_id.prostor_id.oznaka_prostor:
                 raise osv.except_osv(_('Nije odabran prodajni prostor!'), _('Odaberite iz kojeg prostora vršite prodaju'))
-#KGB:       if not (invoice.company_id.country_id and invoice.company_id.country_id.code=='HR' or False):
-#                return res
+            if not (invoice.company_id.country_id and invoice.company_id.country_id.code=='HR' or False):
+                return res
 
-            if not invoice.uredjaj_id:
+            if not invoice.uredjaj_id.oznaka_uredjaj:
                 raise osv.except_osv(_('Greška'), _('Nije odabran naplatni uredjaj!'))
             
             fiskalni_sufiks = '/'.join( (invoice.uredjaj_id.prostor_id.oznaka_prostor, str(invoice.uredjaj_id.oznaka_uredjaj)))

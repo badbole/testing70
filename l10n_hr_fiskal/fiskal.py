@@ -230,7 +230,7 @@ class Fiskalizacija():
         except:
             #return 'No ECHO reply','TEST PORUKA'
             poruka_zahtjev='TEST PORUKA' #TODO pitat suds di je zapelo...
-			self.greska ='Ostale greske - Nema Odgovor! '
+            self.greska ='Ostale greske - Nema Odgovor! '
         finally:
             self.log_fiskal()
         return self.poruka_odgovor
