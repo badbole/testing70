@@ -13,8 +13,7 @@
             	<notebook position="inside">
 	                <page string="Fiskalizacija (CRO)">
 					    <group colspan="4">
-					    <field name="uredjaj_id" string="Prostor/Blagajna"/>
-					    <!--field name="prostor_id"/--> 
+					    <field name="uredjaj_id" string="Prostor/Blagajna"/> 
 						<newline/>
 						<field name="jir" string="JIR" readonly="True" />
 						<field name="zki" string="ZKI" readonly="True"  />
@@ -28,7 +27,6 @@
 				<field name="journal_id" position="after">
 				    <field name="nac_plac"/>
 				</field>
-
 			</field>
 		</record>
 	</data>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
 	<data>
-<!-- res.users OIB -->
+		<!-- res.users OIB -->
 		<record id="view_users_form_fiskal_oib" model="ir.ui.view">
 			<field name="name">res.users.form_fiskal_oib</field>
 			<field name="model">res.users</field>
@@ -33,7 +33,7 @@
 		</record>
 
 		<!-- Fiskal Prostor -->
-		<record id="fiskal_prostor_tree_view" model="ir.ui.view" >
+		<record id="fiskal_prostor_tree_view" model="ir.ui.view">
 			<field name="name">fiskal_prostor_tree_view</field>
 			<field name="model">fiskal.prostor</field>
 			<field name="type">tree</field>
@@ -50,7 +50,7 @@
 			</field>
 		</record>
 
-		<record id="fiskal_prostor_form_view" model="ir.ui.view" >
+		<record id="fiskal_prostor_form_view" model="ir.ui.view">
 			<field name="name">fiskal_prostor_form_view</field>
 			<field name="model">fiskal.prostor</field>
 			<field name="type">form</field>
@@ -64,35 +64,57 @@
 					<newline/>
 					<group col="4" colspan="4">
 						<button name="button_test_echo" string="TEST ECHO" type="object" />
-						<button name="button_prijavi_prostor" string="Prijava prostora" type="object" />
-						<button name="button_odjavi_prostor" string="Odjava prostora" type="object" />
+						<button name="button_prijavi_prostor" string="Prijava prostora"
+							type="object" />
+
 					</group>
 					<newline/>
 
 					<notebook colspan="4">
-						<page string="Adresa">
-							<field name="ulica"/>
-							<field name="kbr"/>
-							<field name="kbr_dodatak"/>
-							<field name="posta"/>
-							<field name="naselje"/>
-							<field name="opcina"/>
-							<field name="sljed_racuna"/>
-							<newline/>
-							<field name="radno_vrijeme"/>
-							<field name="spec"/>
-							<field name="uredjaj_ids" colspan="4"/>
-						</page>
-						<page string="Komunikacija">
+						<page string="Fizička Adresa">
+							<field name="radno_vrijeme" colspan="4" />
+							<newline />
+							<field name="spec" />
+							<field name="sljed_racuna" />
+							<notebook colspan="4">
+								<page string="Adresa prod.mj.">
+									<field name="ulica" />
+									<field name="kbr" />
+									<field name="kbr_dodatak" />
+									<field name="posta" />
+									<field name="naselje" />
+									<field name="opcina" />
+								</page>
+								<page string="Ostali tipovi adresa">
+									<label string="Slodoban unos opisne adrese za ostale vrste poslovnih prostora koji 
+                                nemaju fizičku adresu, npr: internet trgovine ili pokretne trgovine" />
+                                <newline/>
+									<field name="prostor_other" />
+								</page>
 
-							<field name="fiskal_log_ids" nolabel="1" colspan="4"/>
+							</notebook>
+							<newline />
+							<field name="uredjaj_ids" nolabel="1" colspan="4" />
+						</page>
+
+						<page string="Komunikacija">
+							<field name="fiskal_log_ids" nolabel="1" colspan="4" />
+						</page>
+						<page string="Odjava prostora">
+							<label
+								string="Koristiti samo u slucaju kad se zatvara poslovni prostor. 
+								Nakon zatvaranja poslovnog prostora ne smiju se vise prijavljivati racuni
+								sa oznakom ovog poslovnog prostora" />
+							<newline />
+							<button name="button_odjavi_prostor" string="Odjava prostora"
+								type="object" />
 						</page>
 					</notebook>
 				</form>
 			</field>
 		</record>
 
-		<record  id="fiskal_prostor_tree_view" model="ir.ui.view">
+		<record id="fiskal_prostor_tree_view" model="ir.ui.view">
 			<field name="name">fiskal.prostor.tree.view</field>
 			<field name="model">fiskal.prostor</field>
 			<field name="type">tree</field>
@@ -109,9 +131,9 @@
 
 			</field>
 		</record>
-		
-		<!--Fiskal Uredjaj-->
-		<record  id="fiskal_uredjaj_tree_view" model="ir.ui.view">
+
+		<!--Fiskal Uredjaj -->
+		<record id="fiskal_uredjaj_tree_view" model="ir.ui.view">
 			<field name="name">fiskal.uredjaj.tree.view</field>
 			<field name="model">fiskal.uredjaj</field>
 			<field name="type">tree</field>
@@ -123,8 +145,8 @@
 				</tree>
 
 			</field>
-		</record>	
-		<record id="fiskal_uredjaj_form_view" model="ir.ui.view" >
+		</record>
+		<record id="fiskal_uredjaj_form_view" model="ir.ui.view">
 			<field name="name">fiskal_uredjaj_form_view</field>
 			<field name="model">fiskal.uredjaj</field>
 			<field name="type">form</field>
@@ -177,7 +199,7 @@
 							<field name="sadrzaj" nolabel="1"/>
 						</page>
 						<page string="Odgovor na poruku">
-							<field name="odgovor"  nolabel="1"/>
+							<field name="odgovor" nolabel="1"/>
 						</page>
 					</notebook>
 				</form>
@@ -215,17 +237,16 @@
 			<field name="view_mode">tree,form</field>
 		</record>
 
-		<menuitem id="menu_fiskal_root" name="Fiskalizacija" parent="base.menu_res_company_global" sequence="100" />
-		<menuitem id="menu_action_fiskal_prostor" name="Prijava Objekata" action="fiskal_prostor_action" parent="menu_fiskal_root" sequence="100" />
-		<menuitem id="menu_action_fiskal_uredjaj" name="Prijava naplatnog uredjaja" action="fiskal_uredjaj_action" parent="menu_fiskal_root" sequence="120" />
-		<menuitem id="menu_fiskal_log" name="Dnevnik komunikacije" action="fiskal_log_win_action" parent="menu_fiskal_root" sequence="200" />
-		
+		<menuitem id="menu_fiskal_root" name="Fiskalizacija"
+			parent="base.menu_res_company_global" sequence="100" />
+		<menuitem id="menu_action_fiskal_prostor" name="Prijava Objekata"
+			action="fiskal_prostor_action" parent="menu_fiskal_root" sequence="100" />
+		<menuitem id="menu_action_fiskal_uredjaj" name="Prijava naplatnog uredjaja"
+			action="fiskal_uredjaj_action" parent="menu_fiskal_root" sequence="120" />
+		<menuitem id="menu_fiskal_log" name="Dnevnik komunikacije"
+			action="fiskal_log_win_action" parent="menu_fiskal_root" sequence="200" />
 
 
-	
-
-
-		
 
 		<!-- account.tax.code fiskal type & percent -->
 		<record id="account.view_tax_code_form_fiskal" model="ir.ui.view">
@@ -240,8 +261,5 @@
 				</field>
 			</field>
 		</record>
-
-	
-		
 	</data>
 </openerp>

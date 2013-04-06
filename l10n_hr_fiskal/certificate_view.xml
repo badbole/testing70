@@ -5,7 +5,6 @@
 			<field name="inherit_id" ref="openerp_crypto.view_certificate_form"/>
 			<field name="name">crypto.certificate.form.fiskal</field>
 			<field name="model">crypto.certificate</field>
-			<field name="type">form</field>
 			<field name="arch" type="xml">
 				<field name="name" position="after">
 					<field name="cert_type"/>

@@ -30,6 +30,7 @@ import datetime , tools
 import uuid
 from fiskal import *
 from openerp.tools.translate import _
+from tools import config
 
 
 class res_users(osv.osv):
@@ -66,7 +67,8 @@ class fiskal_prostor(osv.Model):
         'kbr_dodatak': fields.char('Dodatak kucnom broju', size=4),
         'posta': fields.char('Posta', size=12),
         'naselje': fields.char('Naselje', size=35),
-        'opcina'   :fields.char('Naziv opcine ili grada', size=35, required="True"),
+        'opcina'   :fields.char('Naziv opcine ili grada', size=35, ),
+        'prostor_other':fields.char('Ostali tipovi adrese', size=100, help="Ostali tipovi adresa, npr internet trgovina ili pokretna trgovina"),
         'sustav_pdv':fields.boolean('U sustavu PDV-a'),
         'radno_vrijeme' : fields.char('Radno Vrijeme', required="True", size=1000),
         'sljed_racuna':fields.selection ((('N','Na nivou naplatnog uredjaja'),('P','Na nivou poslovnog prostora')),'Sljed racuna'),
@@ -164,6 +166,12 @@ class fiskal_prostor(osv.Model):
 
     def posalji_prostor(self, cr, uid, ids, fields, msgtype, context=None):
         prostor=self.browse(cr, uid, ids)[0]
+        #Bole:Provjera adrese : mora biti jedan tip, ne oba i ne nijedan
+        if (prostor.prostor_other and prostor.ulica):
+            raise osv.except_osv(_('Greška: Dupla adresa'), _('Nije moguće prijaviti dva tipa adrese za jedan poslovni prostor!'))
+        elif not (prostor.prostor_other or prostor.ulica):
+            raise osv.except_osv(_('Greška: Nema adrese'), _('Unesite adresne podatke ili opisnu adresu prostora!'))
+        
         wsdl, key, cert = self.get_fiskal_data(cr, uid, company_id=prostor.company_id.id)
         if not wsdl:
             return False
@@ -195,19 +203,23 @@ class fiskal_prostor(osv.Model):
         
         #Mogući su i "ostali" tipovi- internet trgovina ili pokretna trgovina.. 
         adresni_podatak = a.client2.factory.create('tns:AdresniPodatakType')
-        adresa = a.client2.factory.create('tns:Adresa')
         
-        adresa.Ulica= prostor.ulica
-        if prostor.kbr:
-            adresa.KucniBroj=prostor.kbr  
-        if prostor.kbr_dodatak:
-            adresa.KucniBrojDodatak=prostor.kbr_dodatak
-        adresa.BrojPoste=prostor.posta  
-        adresa.Naselje=prostor.naselje  
-        adresa.Opcina= prostor.opcina  
-        
-        adresni_podatak.Adresa = adresa
-        a.prostor.AdresniPodatak = adresni_podatak
+        if prostor.prostor_other :
+            adresa=a.client2.factory.create('tns:OstaliTipoviPP')
+            adresni_podatak.OstaliTipoviPP=prostor.prostor_other
+            a.prostor.AdresniPodatak = adresni_podatak
+        else :
+            adresa = a.client2.factory.create('tns:Adresa')
+            adresa.Ulica= prostor.ulica
+            if prostor.kbr:
+                adresa.KucniBroj=prostor.kbr  
+            if prostor.kbr_dodatak:
+                adresa.KucniBrojDodatak=prostor.kbr_dodatak
+            adresa.BrojPoste=prostor.posta  
+            adresa.Naselje=prostor.naselje  
+            adresa.Opcina= prostor.opcina  
+            adresni_podatak.Adresa = adresa
+            a.prostor.AdresniPodatak = adresni_podatak
         a.prostor.OznakaZatvaranja ='Z'
         if not(msgtype == 'prostor_odjava'): 
             a.prostor.__delattr__('OznakaZatvaranja') 

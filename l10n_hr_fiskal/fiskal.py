@@ -9,7 +9,7 @@ from M2Crypto import RSA
 import logging
 
 from openerp.osv import fields, osv, orm
-from tools import config
+#from tools import config
 from datetime import datetime
 from pytz import timezone
 

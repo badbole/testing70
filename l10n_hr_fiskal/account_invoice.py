@@ -147,10 +147,6 @@ class account_invoice(osv.Model):
         #tko pokusava fiskalizirati?
         if not invoice.fiskal_user_id:
             self.write(cr, uid, [id], {'fiskal_user_id':uid})
-
-        if not invoice.fiskal_user_id:
-            self.write(cr, uid, [id], {'fiskal_user_id':uid})
-            
         invoice= self.browse(cr, uid, [id])[0] #refresh
 
         #TODO - posebna funkcija za provjeru npr. invoice_fiskal_valid()
