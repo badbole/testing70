@@ -76,14 +76,17 @@ class account_invoice(osv.Model):
         return True
 
     def button_fiscalize(self, cr, uid, ids, context=None):
-        #invoice= self.browse(cr, uid, [id])[0]
-        #if invoice.jir == 'PONOVITI SLANJE!':
+        
         if context is None:
             context = {}
         for invoice in self.browse( cr, uid, ids, context):
-            self.fiskaliziraj(cr, uid, invoice.id, context=context)
-        #elif self.browse(cr, uid, [id])[0].jir != None:
-        #    raise osv.except_osv(_('Already done!'), _('This invoice is already fiscalized!.'))
+            if not(invoice.jir):
+                self.fiskaliziraj(cr, uid, invoice.id, context=context)
+            elif len(invoice.jir)>30: #BOLE: JIR je 32 znaka
+                raise osv.except_osv(_('FISKALIZIRANO!'), _('Nema potrebe ponavljati postupak fiskalizacije!.'))
+            elif invoice.jir=='PONOVITI SLANJE!':
+                raise osv.except_osv(_('Ovo nije doradjeno!'), _('Ukoliko vidite ovu poruku u problemu ste!.'))
+                #TODO: uzeti ispravno vrijem od računa za ponovljeno slanje.. 
         
         
     def get_fiskal_taxes(self, cr, uid, invoice, a, context=None):

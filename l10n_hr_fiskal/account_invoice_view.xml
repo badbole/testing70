@@ -6,17 +6,14 @@
 			<field name="model">account.invoice</field>
 			<field name="inherit_id" ref="account.invoice_form"/>
 			<field name="arch" type="xml">
-				<field name="residual" position="after">
-                    <button name="button_fiscalize" string="Fiskaliziraj" type="object" groups="base.group_user" />
-				</field>
-
-            	<notebook position="inside">
+				<notebook position="inside">
 	                <page string="Fiskalizacija (CRO)">
 					    <group colspan="4">
-					    <field name="uredjaj_id" string="Prostor/Blagajna"/> 
-						<newline/>
 						<field name="jir" string="JIR" readonly="True" />
 						<field name="zki" string="ZKI" readonly="True"  />
+						<newline/>
+						<button name="button_fiscalize" states="open,paid" string="Fiskaliziraj" type="object" groups="base.group_user" />
+						<newline/>
 				        <field name="fiskal_user_id" readonly="True"/>
 				      	<field name="vrijeme_izdavanja" readonly="True"/> 
 						</group>
@@ -25,6 +22,7 @@
                 </notebook>
 				
 				<field name="journal_id" position="after">
+					<field name="uredjaj_id" string="Prostor/Blagajna"/> 
 				    <field name="nac_plac"/>
 				</field>
 			</field>
